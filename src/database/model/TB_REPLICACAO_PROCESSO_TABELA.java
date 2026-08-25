@@ -7,17 +7,19 @@ public class TB_REPLICACAO_PROCESSO_TABELA {
     private String tabela_origem;
     private String tabela_destino;
     private int ordem;
+    private boolean habilitado;
     private String ds_where;
 
     public TB_REPLICACAO_PROCESSO_TABELA() {
     }
 
-    public TB_REPLICACAO_PROCESSO_TABELA(long id, long processo_id, String tabela_origem, String tabela_destino, int ordem, String ds_where) {
+    public TB_REPLICACAO_PROCESSO_TABELA(long id, long processo_id, String tabela_origem, String tabela_destino, int ordem, boolean habilitado, String ds_where) {
         this.id = id;
         this.processo_id = processo_id;
         this.tabela_origem = tabela_origem;
         this.tabela_destino = tabela_destino;
         this.ordem = ordem;
+        this.habilitado = habilitado;
         this.ds_where = ds_where;
     }
 
@@ -59,6 +61,14 @@ public class TB_REPLICACAO_PROCESSO_TABELA {
 
     public void setOrdem(int ordem) {
         this.ordem = ordem;
+    }
+
+    public boolean isHabilitado() {
+        return habilitado;
+    }
+
+    public void setHabilitado(boolean habilitado) {
+        this.habilitado = habilitado;
     }
 
     public String getDs_where() {
