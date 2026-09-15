@@ -15,7 +15,6 @@ public class TelaReplicacaoProcessoView extends JFrame {
     private final Connection conn;
     private final ReplicacaoProcessoDAO dao;
 
-
     private JTextField txfId;
     private JTextField txfProcesso;
     private JTextField txfDescricao;
