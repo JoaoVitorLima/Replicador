@@ -1,13 +1,27 @@
 package database.view;
 
+import database.dao.ProcessoTabelaDAO;
+import database.dao.ReplicacaoProcessoDAO;
 import database.model.TB_REPLICACAO_DIRECAO;
+import database.model.TB_REPLICACAO_PROCESSO;
+import database.model.TB_REPLICACAO_PROCESSO_TABELA;
 
 import javax.swing.*;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.ArrayList;
 
 public class TelaReplicacaoProcessoTabelaView extends JFrame {
 
+    private enum ModoTela {NENHUM, INSERT, UPDATE}
+    private ModoTela modo = ModoTela.NENHUM;
+
+    private final Connection conn;
+    private final ProcessoTabelaDAO daoTabela;
+    private  final ReplicacaoProcessoDAO daoProcesso;
+
     private JTextField txfId;
-    private JComboBox<TB_REPLICACAO_DIRECAO> cbProcesso;
+    private JComboBox<TB_REPLICACAO_PROCESSO> cbProcesso;
     private JTextField txfTabelaOrigem;
     private JTextField txfTabelaDestino;
     private JTextField txfOrdem;
@@ -19,23 +33,30 @@ public class TelaReplicacaoProcessoTabelaView extends JFrame {
     private JButton btnBuscar;
     private JButton btnExcluir;
 
-    public TelaReplicacaoProcessoTabelaView() {
+    public TelaReplicacaoProcessoTabelaView(Connection conn) throws SQLException {
+
+        this.conn = conn;
+        this.daoTabela = new ProcessoTabelaDAO(conn);
+        this.daoProcesso = new ReplicacaoProcessoDAO(conn);
+
         setTitle("Cadastro de Tabelas");
         setSize(720, 420);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
-        setResizable(false);
-        setLayout(null);
+
+        JPanel panel = new JPanel();
+        panel.setLayout(null);
+        add(panel);
 
         btnBuscar = new JButton("BUSCAR");
         btnAdicionar = new JButton("ADICIONAR");
         btnSalvar = new JButton("SALVAR");
         btnExcluir = new JButton("EXCLUIR");
 
-        btnBuscar.setBounds(10, 10, 130, 30);
-        btnAdicionar.setBounds(150, 10, 130, 30);
-        btnSalvar.setBounds(290, 10, 130, 30);
-        btnExcluir.setBounds(430, 10, 130, 30);
+        btnBuscar.setBounds(10, 10, 160, 30);
+        btnAdicionar.setBounds(180, 10, 160, 30);
+        btnSalvar.setBounds(350, 10, 160, 30);
+        btnExcluir.setBounds(520, 10, 160, 30);
 
         getContentPane().add(btnBuscar);
         getContentPane().add(btnAdicionar);
@@ -59,7 +80,7 @@ public class TelaReplicacaoProcessoTabelaView extends JFrame {
         getContentPane().add(cbProcesso);
 
         JLabel lblTabelaOrigem = new JLabel("TABELA ORIGEM:");
-        lblTabelaOrigem.setBounds(10, 140, 520, 25);
+        lblTabelaOrigem.setBounds(10, 140, 140, 25);
         getContentPane().add(lblTabelaOrigem);
 
         txfTabelaOrigem = new JTextField();
@@ -82,8 +103,12 @@ public class TelaReplicacaoProcessoTabelaView extends JFrame {
         txfOrdem.setBounds(160, 210, 220, 25);
         getContentPane().add(txfOrdem);
 
-        chkHabilitado = new JCheckBox();
-        chkHabilitado.setBounds(20, 245, 140, 25);
+        JLabel lblHabilitado = new JLabel("HABILITADO:");
+        lblHabilitado.setBounds(10, 245, 140, 25);
+        panel.add(lblHabilitado);
+
+        chkHabilitado = new JCheckBox("Sim");
+        chkHabilitado.setBounds(160, 245, 80, 25);
         getContentPane().add(chkHabilitado);
 
         JLabel lblWhere = new JLabel("WHERE:");
@@ -93,9 +118,200 @@ public class TelaReplicacaoProcessoTabelaView extends JFrame {
         txtWhere = new JTextArea();
         txtWhere.setBounds(160, 280, 520, 80);
         getContentPane().add(txtWhere);
-    }
 
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new TelaReplicacaoProcessoTabelaView().setVisible(true));
+        cbProcesso.removeAllItems();;
+        ArrayList<TB_REPLICACAO_PROCESSO> processos = daoProcesso.selectAll();
+        for (TB_REPLICACAO_PROCESSO p : processos) {
+            cbProcesso.addItem(p);
+        }
+
+        txfId.setEnabled(false);
+        cbProcesso.setEnabled(false);
+        txfTabelaOrigem.setEnabled(false);
+        txfTabelaDestino.setEnabled(false);
+        txfOrdem.setEnabled(false);
+        chkHabilitado.setEnabled(false);
+        txtWhere.setEnabled(false);
+
+        btnSalvar.setEnabled(false);
+        btnExcluir.setEnabled(false);
+
+        btnAdicionar.addActionListener(e -> {
+            modo = ModoTela.INSERT;
+
+            txfId.setText("");
+            if (cbProcesso.getItemCount() > 0) cbProcesso.setSelectedIndex(0);
+
+            txfTabelaOrigem.setText("");
+            txfTabelaDestino.setText("");
+            txfOrdem.setText("");
+            chkHabilitado.setSelected(true);
+            txtWhere.setText("");
+
+            cbProcesso.setEnabled(true);
+            txfTabelaOrigem.setEnabled(true);
+            txfTabelaDestino.setEnabled(true);
+            txfOrdem.setEnabled(true);
+            chkHabilitado.setEnabled(true);
+            txtWhere.setEnabled(true);
+
+            btnSalvar.setEnabled(true);
+            btnExcluir.setEnabled(false);
+        });
+
+        btnSalvar.addActionListener(e -> {
+            try {
+                if (cbProcesso.getSelectedItem() == null) {
+                    JOptionPane.showMessageDialog(this, "Informe o PROCESSO.");
+                    return;
+                }
+
+                if (txfTabelaOrigem.getText().trim().isEmpty() || txfTabelaDestino.getText().trim().isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "Informe TABELA_ORGEM e TABELA_DESTINO.");
+                    return;
+                }
+
+                if (txfOrdem.getText().trim().isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "Informe a ORDEM.");
+                    return;
+                }
+
+                int ordem;
+                try {
+                    ordem = Integer.parseInt(txfOrdem.getText().trim());
+                } catch (NumberFormatException nfe) {
+                    JOptionPane.showMessageDialog(this, "ORDEM deve ser número.");
+                    return;
+                }
+
+                TB_REPLICACAO_PROCESSO pSel = (TB_REPLICACAO_PROCESSO) cbProcesso.getSelectedItem();
+
+                TB_REPLICACAO_PROCESSO_TABELA t = new TB_REPLICACAO_PROCESSO_TABELA();
+                t.setProcesso_id(pSel.getId());
+                t.setTabela_origem(txfTabelaOrigem.getText().trim());
+                t.setTabela_destino(txfTabelaDestino.getText().trim());
+                t.setOrdem(ordem);
+                t.setHabilitado(chkHabilitado.isSelected());
+                t.setDs_where(txtWhere.getText());
+
+                if (modo == ModoTela.INSERT) {
+                    daoTabela.insert(t);
+                    JOptionPane.showMessageDialog(this, "Inserido com sucesso.");
+                } else if (modo == ModoTela.UPDATE) {
+                    if (txfId.getText().trim().isEmpty()) {
+                        JOptionPane.showMessageDialog(this, "ID não carregado para update.");
+                        return;
+                    }
+                    t.setId(Long.parseLong(txfId.getText().trim()));
+                    daoTabela.update(t);
+                    JOptionPane.showMessageDialog(this, "Atualizado com sucesso.");
+                } else {
+                    JOptionPane.showMessageDialog(this, "Clique em ADICIONAR ou BUSCAR antes de salvar.");
+                    return;
+                }
+
+                modo = ModoTela.NENHUM;
+
+                cbProcesso.setEnabled(false);
+                txfTabelaOrigem.setEnabled(false);
+                txfTabelaDestino.setEnabled(false);
+                txfOrdem.setEnabled(false);
+                chkHabilitado.setEnabled(false);
+                txtWhere.setEnabled(false);
+
+                btnSalvar.setEnabled(false);
+
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(this, "Erro ao salvar: " + ex.getMessage());
+            }
+        });
+
+        btnExcluir.addActionListener(e -> {
+            try {
+                if (txfId.getText().trim().isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "Nenhum registro carregado para excluir.");
+                    return;
+                }
+
+                int op = JOptionPane.showConfirmDialog(this, "Confirma exclusão?", "Excluir",
+                        JOptionPane.YES_NO_OPTION);
+
+                if (op != JOptionPane.YES_OPTION) return;
+
+                long id = Long.parseLong(txfId.getText().trim());
+                daoTabela.delete(id);
+
+                JOptionPane.showMessageDialog(this, "Excluído com sucesso.");
+
+                modo = ModoTela.NENHUM;
+
+                txfId.setText("");
+                if (cbProcesso.getItemCount() > 0) cbProcesso.setSelectedItem(0);
+
+                txfTabelaOrigem.setText("");
+                txfTabelaDestino.setText("");
+                txfOrdem.setText("");
+                chkHabilitado.setSelected(false);
+                txtWhere.setText("");
+
+                cbProcesso.setEnabled(false);
+                txfTabelaOrigem.setEnabled(false);
+                txfTabelaDestino.setEnabled(false);
+                txfOrdem.setEnabled(false);
+                chkHabilitado.setEnabled(false);
+                txtWhere.setEnabled(false);
+
+                btnSalvar.setEnabled(false);
+                btnExcluir.setEnabled(false);
+
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(this, "Erro ao excluir: " + ex.getMessage());
+            }
+        });
+
+        btnBuscar.addActionListener(e -> {
+            try {
+                ConsultaProcessoTabelaDialog dlg = new ConsultaProcessoTabelaDialog(this, daoTabela);
+                dlg.setVisible(true);
+
+                TB_REPLICACAO_PROCESSO_TABELA sel = dlg.getSelecionado();
+
+                if (sel == null) return;
+
+                modo = ModoTela.UPDATE;
+
+                txfId.setText(String.valueOf(sel.getId()));
+                txfTabelaOrigem.setText(sel.getTabela_origem());
+                txfTabelaDestino.setText(sel.getTabela_destino());
+                txfOrdem.setText(String.valueOf(sel.getOrdem()));
+                chkHabilitado.setSelected(sel.isHabilitado());
+                txtWhere.setText(sel.getDs_where());
+
+                long pid = sel.getProcesso_id();
+                for (int i = 0; i < cbProcesso.getItemCount(); i++) {
+                    TB_REPLICACAO_PROCESSO item = cbProcesso.getItemAt(i);
+                    if (item.getId() == pid) {
+                        cbProcesso.setSelectedItem(i);
+                        break;
+                    }
+                }
+
+                cbProcesso.setEnabled(true);
+                txfTabelaOrigem.setEnabled(true);
+                txfTabelaDestino.setEnabled(true);
+                txfOrdem.setEnabled(true);
+                chkHabilitado.setEnabled(true);
+                txtWhere.setEnabled(true);
+
+                btnSalvar.setEnabled(true);
+                btnExcluir.setEnabled(true);
+
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(null, "Erro ao consultar registro: " + ex.getMessage());
+            }
+        });
     }
 }
