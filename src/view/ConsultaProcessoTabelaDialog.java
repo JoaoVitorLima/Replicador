@@ -1,11 +1,11 @@
-package database.view;
+package view;
 
 import database.dao.ProcessoTabelaDAO;
 import database.model.TB_REPLICACAO_PROCESSO_TABELA;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
-import java.awt.event.MouseEvent;
+import java.awt.*;
 import java.sql.SQLException;
 import java.util.ArrayList;
 
@@ -17,11 +17,10 @@ public class ConsultaProcessoTabelaDialog extends JDialog {
 
     private TB_REPLICACAO_PROCESSO_TABELA selecionado;
 
-    public ConsultaProcessoTabelaDialog (JFrame parent, ProcessoTabelaDAO dao) throws Exception {
-        super(parent, "Consulta - Direções", true);
+    public ConsultaProcessoTabelaDialog(Frame parent, ProcessoTabelaDAO dao) throws Exception {
+        super(parent, "Consulta - Processo Tabela", true);
         setSize(1000, 420);
         setLocationRelativeTo(parent);
-        setResizable(false);
         setLayout(null);
 
         DefaultTableModel model = new DefaultTableModel();
@@ -33,21 +32,21 @@ public class ConsultaProcessoTabelaDialog extends JDialog {
         model.addColumn("HABILITADO");
 
         ArrayList<TB_REPLICACAO_PROCESSO_TABELA> lista = dao.selectAll();
-        for (TB_REPLICACAO_PROCESSO_TABELA p : lista) {
+        for (TB_REPLICACAO_PROCESSO_TABELA t : lista) {
             model.addRow(new Object[]{
-                    p.getId(),
-                    p.getProcesso_id(),
-                    p.getTabela_origem(),
-                    p.getTabela_destino(),
-                    p.getOrdem(),
-                    p.isHabilitado()
+                    t.getId(),
+                    t.getProcesso_id(),
+                    t.getTabela_origem(),
+                    t.getTabela_destino(),
+                    t.getOrdem(),
+                    t.isHabilitado()
             });
         }
 
         table = new JTable(model);
-        JScrollPane scrollPane = new JScrollPane(table);
-        scrollPane.setBounds(10, 10, 960, 300);
-        add(scrollPane);
+        JScrollPane scroll = new JScrollPane(table);
+        scroll.setBounds(10, 10, 960, 300);
+        add(scroll);
 
         btnSelecionar = new JButton("SELECIONAR");
         btnSelecionar.setBounds(10, 320, 140, 30);
@@ -65,26 +64,25 @@ public class ConsultaProcessoTabelaDialog extends JDialog {
         btnSelecionar.addActionListener(e -> {
             int row = table.getSelectedRow();
             if (row == -1) {
-                JOptionPane.showMessageDialog(this, "Selecione um registro.");
+                JOptionPane.showMessageDialog(this, "Selecione uma linha.");
                 return;
             }
 
             long id = Long.parseLong(table.getValueAt(row, 0).toString());
-            TB_REPLICACAO_PROCESSO_TABELA d = null;
+            TB_REPLICACAO_PROCESSO_TABELA t = null;
             try {
-                d = dao.selectById(id);
+                t = dao.selectById(id);
             } catch (SQLException ex) {
                 throw new RuntimeException(ex);
             }
 
-            selecionado = d;
+            selecionado = t;
             dispose();
         });
 
         table.addMouseListener(new java.awt.event.MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                if (e.getClickCount() == 2) {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                if (evt.getClickCount() == 2) {
                     btnSelecionar.doClick();
                 }
             }

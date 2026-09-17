@@ -1,4 +1,4 @@
-package database.view;
+package view;
 
 import database.dao.DirecaoDAO;
 import database.model.TB_REPLICACAO_DIRECAO;

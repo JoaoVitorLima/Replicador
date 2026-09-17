@@ -1,11 +1,11 @@
-package database.view;
+package view;
 
 import database.dao.ReplicacaoProcessoDAO;
 import database.model.TB_REPLICACAO_PROCESSO;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
-import java.awt.event.MouseEvent;
+import java.awt.*;
 import java.util.ArrayList;
 
 public class ConsultaProcessoDialog extends JDialog {
@@ -16,11 +16,10 @@ public class ConsultaProcessoDialog extends JDialog {
 
     private TB_REPLICACAO_PROCESSO selecionado;
 
-    public ConsultaProcessoDialog(JFrame parent, ReplicacaoProcessoDAO dao) throws Exception {
-        super(parent, "Consulta de Processos");
+    public ConsultaProcessoDialog(Frame parent, ReplicacaoProcessoDAO dao) throws Exception {
+        super(parent, "Consulta - Processos", true);
         setSize(700, 400);
         setLocationRelativeTo(parent);
-        setResizable(false);
         setLayout(null);
 
         DefaultTableModel model = new DefaultTableModel();
@@ -31,20 +30,25 @@ public class ConsultaProcessoDialog extends JDialog {
 
         ArrayList<TB_REPLICACAO_PROCESSO> lista = dao.selectAll();
         for (TB_REPLICACAO_PROCESSO p : lista) {
-            model.addRow(new Object[]{p.getId(), p.getProcesso(), p.isHabilitado()});
+            model.addRow(new Object[]{
+                    p.getId(),
+                    p.getProcesso(),
+                    p.getDescricao(),
+                    p.isHabilitado()
+            });
         }
 
         table = new JTable(model);
-        JScrollPane scrollPane = new JScrollPane(table);
-        scrollPane.setBounds(10, 10, 680, 300);
-        add(scrollPane);
+        JScrollPane scroll = new JScrollPane(table);
+        scroll.setBounds(10, 10, 660, 300);
+        add(scroll);
 
         btnSelecionar = new JButton("SELECIONAR");
         btnSelecionar.setBounds(10, 320, 140, 30);
         add(btnSelecionar);
 
         btnCancelar = new JButton("CANCELAR");
-        btnCancelar.setBounds(178, 320, 140, 30);
+        btnCancelar.setBounds(160, 320, 140, 30);
         add(btnCancelar);
 
         btnCancelar.addActionListener(e -> {
@@ -55,23 +59,24 @@ public class ConsultaProcessoDialog extends JDialog {
         btnSelecionar.addActionListener(e -> {
             int row = table.getSelectedRow();
             if (row == -1) {
-                JOptionPane.showMessageDialog(this, "Selecione um registro.");
+                JOptionPane.showMessageDialog(this, "Selecione uma linha.");
                 return;
             }
 
             TB_REPLICACAO_PROCESSO p = new TB_REPLICACAO_PROCESSO();
-            p.setId(Integer.parseInt(table.getValueAt(row, 0).toString()));
-            p.setProcesso(table.getValueAt(row, 1).toString());
-            p.setDescricao(table.getValueAt(row, 2).toString());
+            p.setId(Long.parseLong(table.getValueAt(row, 0).toString()));
+            p.setProcesso(String.valueOf(table.getValueAt(row, 1)));
+            p.setDescricao(String.valueOf(table.getValueAt(row, 2)));
             p.setHabilitado(Boolean.parseBoolean(table.getValueAt(row, 3).toString()));
+
             selecionado = p;
             dispose();
         });
 
+        // duplo clique também seleciona
         table.addMouseListener(new java.awt.event.MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                if (e.getClickCount() == 2) {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                if (evt.getClickCount() == 2) {
                     btnSelecionar.doClick();
                 }
             }
